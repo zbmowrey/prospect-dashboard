@@ -1,0 +1,8 @@
+# Bulk import list for `just import samples/sites.example.txt`
+# One site per line. Only the URL is required; extra fields are optional:
+#   url, name, city, state, industry
+# Lines starting with # are ignored.
+
+https://absolutefitnessandhealth.com, Absolute Fitness and Health, Spring Hill, FL, Fitness & Wellness
+https://example.com, XYZ Enterprises, Spring Hill, FL, HVAC
+https://example.org

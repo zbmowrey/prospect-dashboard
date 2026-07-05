@@ -1,0 +1,33 @@
+[
+  {
+    "name": "XYZ Enterprises",
+    "website": "https://example.com",
+    "city": "Spring Hill",
+    "state": "FL",
+    "phone": "352-555-0100",
+    "industry": "HVAC",
+    "est_size": "1-10",
+    "saas_needs": ["online booking", "review capture", "local SEO"],
+    "source": "google maps — spring hill hvac"
+  },
+  {
+    "name": "Eleventy Web Studio",
+    "website": "https://www.11ty.dev",
+    "city": "Asheville",
+    "state": "NC",
+    "industry": "Web Design",
+    "est_size": "1-10",
+    "saas_needs": ["client portal", "invoicing"],
+    "source": "demo"
+  },
+  {
+    "name": "Astro Coffee Roasters",
+    "website": "https://astro.build",
+    "city": "Portland",
+    "state": "ME",
+    "industry": "Food & Beverage",
+    "est_size": "11-50",
+    "saas_needs": ["ecommerce", "loyalty program", "email marketing"],
+    "source": "demo"
+  }
+]
