@@ -67,6 +67,9 @@ export async function captureSite(
     viewport: VIEWPORT,
     deviceScaleFactor: 2,
     userAgent: USER_AGENT,
+    // Capture sites even when they have expired/invalid TLS certs — those are
+    // exactly the neglected sites worth prospecting.
+    ignoreHTTPSErrors: true,
   });
   const page = await context.newPage();
   try {

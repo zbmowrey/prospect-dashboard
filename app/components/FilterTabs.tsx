@@ -1,7 +1,7 @@
-export type TabKey = "active" | "hotlist" | "rejected" | "all";
+export type TabKey = "new" | "hotlist" | "rejected" | "all";
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "active", label: "Active" },
+  { key: "new", label: "To review" },
   { key: "hotlist", label: "Hotlist" },
   { key: "rejected", label: "Rejected" },
   { key: "all", label: "All" },

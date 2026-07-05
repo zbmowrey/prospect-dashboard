@@ -1,9 +1,27 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ProspectDTO, ProspectStatus } from "@/lib/types";
+import type { CaptureStatus, ProspectDTO, ProspectStatus } from "@/lib/types";
 import ProspectCard from "./ProspectCard";
 import FilterTabs, { type TabKey } from "./FilterTabs";
+import FacetSelect, { type FacetOption } from "./FacetSelect";
+
+// Default view = "ready to review": untriaged (new) prospects that have been
+// captured, so pending/failed ones don't clutter the triage queue.
+const DEFAULT_TAB: TabKey = "new";
+const DEFAULT_CAPTURE = "captured";
+
+function facetOptions(items: ProspectDTO[], key: "industry" | "city"): FacetOption[] {
+  const m = new Map<string, number>();
+  for (const p of items) {
+    const v = p[key];
+    if (!v) continue;
+    m.set(v, (m.get(v) ?? 0) + 1);
+  }
+  return [...m.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([value, count]) => ({ value, label: value, count }));
+}
 
 export default function ProspectBoard({
   initialProspects,
@@ -11,11 +29,13 @@ export default function ProspectBoard({
   initialProspects: ProspectDTO[];
 }) {
   const [items, setItems] = useState<ProspectDTO[]>(initialProspects);
-  const [tab, setTab] = useState<TabKey>("active");
+  const [tab, setTab] = useState<TabKey>(DEFAULT_TAB);
+  const [industry, setIndustry] = useState("");
+  const [city, setCity] = useState("");
+  const [capture, setCapture] = useState<string>(DEFAULT_CAPTURE);
   const [query, setQuery] = useState("");
 
-  // While any capture is pending, poll the server so freshly-shot thumbnails
-  // appear without a manual refresh. Stops once nothing is pending.
+  // While any capture is pending, poll so freshly-shot thumbnails appear.
   const hasPending = items.some((p) => p.captureStatus === "pending");
   useEffect(() => {
     if (!hasPending) return;
@@ -64,7 +84,7 @@ export default function ProspectBoard({
 
   const counts: Record<TabKey, number> = useMemo(
     () => ({
-      active: items.filter((p) => p.status !== "rejected").length,
+      new: items.filter((p) => p.status === "new").length,
       hotlist: items.filter((p) => p.status === "hotlist").length,
       rejected: items.filter((p) => p.status === "rejected").length,
       all: items.length,
@@ -72,36 +92,68 @@ export default function ProspectBoard({
     [items],
   );
 
+  const capturedCount = useMemo(
+    () => items.filter((p) => p.captureStatus === "captured").length,
+    [items],
+  );
+
+  const industryOptions = useMemo(() => facetOptions(items, "industry"), [items]);
+  const cityOptions = useMemo(() => facetOptions(items, "city"), [items]);
+  const captureOptions: FacetOption[] = useMemo(() => {
+    const by = (s: CaptureStatus) =>
+      items.filter((p) => p.captureStatus === s).length;
+    return [
+      { value: "captured", label: "Captured", count: by("captured") },
+      { value: "pending", label: "Capturing", count: by("pending") },
+      { value: "failed", label: "Failed", count: by("failed") },
+    ];
+  }, [items]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((p) => {
-      const inTab =
-        tab === "all"
-          ? true
-          : tab === "active"
-            ? p.status !== "rejected"
-            : p.status === tab;
-      if (!inTab) return false;
-      if (!q) return true;
-      return [p.name, p.domain, p.city, p.state, p.industry]
-        .filter(Boolean)
-        .some((v) => (v as string).toLowerCase().includes(q));
+      if (tab !== "all" && p.status !== tab) return false;
+      if (industry && p.industry !== industry) return false;
+      if (city && p.city !== city) return false;
+      if (capture && p.captureStatus !== capture) return false;
+      if (q) {
+        const hay = [p.name, p.domain, p.city, p.state, p.industry, p.notes].filter(
+          Boolean,
+        );
+        if (!hay.some((v) => (v as string).toLowerCase().includes(q))) return false;
+      }
+      return true;
     });
-  }, [items, tab, query]);
+  }, [items, tab, industry, city, capture, query]);
+
+  const isDefaultView =
+    tab === DEFAULT_TAB &&
+    !industry &&
+    !city &&
+    capture === DEFAULT_CAPTURE &&
+    !query;
+
+  function reset() {
+    setTab(DEFAULT_TAB);
+    setIndustry("");
+    setCity("");
+    setCapture(DEFAULT_CAPTURE);
+    setQuery("");
+  }
 
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
-      <header className="mb-5">
+      <header className="mb-4">
         <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
           Prospects
         </h1>
         <p className="text-sm text-neutral-500">
-          {counts.active} active · {counts.hotlist} hotlisted · {counts.rejected}{" "}
-          rejected
+          {counts.all} total · {capturedCount} captured · {counts.new} to review ·{" "}
+          {counts.hotlist} hotlisted · {counts.rejected} rejected
         </p>
       </header>
 
-      <div className="mb-5">
+      <div className="mb-3">
         <FilterTabs
           tab={tab}
           counts={counts}
@@ -109,6 +161,37 @@ export default function ProspectBoard({
           query={query}
           onQuery={setQuery}
         />
+      </div>
+
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <FacetSelect
+          label="industries"
+          value={industry}
+          options={industryOptions}
+          onChange={setIndustry}
+        />
+        <FacetSelect
+          label="cities"
+          value={city}
+          options={cityOptions}
+          onChange={setCity}
+        />
+        <FacetSelect
+          label="capture status"
+          allLabel="Any capture status"
+          value={capture}
+          options={captureOptions}
+          onChange={setCapture}
+        />
+        <span className="text-sm text-neutral-500">{filtered.length} shown</span>
+        {!isDefaultView && (
+          <button
+            onClick={reset}
+            className="ml-auto text-sm text-neutral-500 underline-offset-2 hover:text-neutral-800 hover:underline"
+          >
+            Reset filters
+          </button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -120,7 +203,7 @@ export default function ProspectBoard({
               <code className="rounded bg-neutral-100 px-1 py-0.5">npm run capture</code>.
             </>
           ) : (
-            <>No prospects match this view.</>
+            <>No prospects match these filters.</>
           )}
         </div>
       ) : (
