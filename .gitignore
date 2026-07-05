@@ -40,11 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# app data — commit the SQLite db as a schema baseline, but not the
-# captured screenshots or the WAL sidecar files
-/data/screenshots/
-/data/*.db-wal
-/data/*.db-shm
+# app data — local only (SQLite db + captured screenshots)
+/data/
 
 # dropped prospect payloads (keep the samples/ template, not these)
 /inbox/*.json
